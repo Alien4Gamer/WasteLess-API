@@ -38,7 +38,7 @@ def seed():
     supabase.table("food_stock").insert(foods).execute()
 
     # Alice's recipe: Pasta Pomodoro
-    recipe = supabase.table("recipes").insert({"user_id": u1["id"], "title": "Pasta Pomodoro", "description": "Simple pasta with tomatoes and cashew nuts instead of cheese"}).execute().data[0]
+    recipe = supabase.table("recipes").insert({"user_id": u1["id"], "title": "Pasta Pomodoro", "description": "Simple pasta with tomatoes and cashew nuts"}).execute().data[0]
     supabase.table("recipe_ingredients").insert([
         {"recipe_id": recipe["id"], "name": "Pasta", "name_norm": "pasta", "quantity": 200, "unit": "g"},
         {"recipe_id": recipe["id"], "name": "Tomato", "name_norm": "tomato", "quantity": 2, "unit": "pcs"},
