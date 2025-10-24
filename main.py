@@ -128,6 +128,57 @@ def delete_user_food_from_db(user_id: int):
     response = supabase.table("food_stock").delete().eq("user_id", user_id).execute()
     return response
 
+
+def compute_recipe_suggestions(user_id: int):
+    # Step 1: Retrieve all food items in the user's inventory
+    food_items_response = get_all_food_items(user_id)
+    user_food_items = {item["name_norm"]: item for item in food_items_response.data or []}
+
+    # Step 2: Retrieve all recipes from the database
+    recipes_response = supabase.table("recipes").select("*").eq("user_id", user_id).execute()
+    if not recipes_response.data:
+        return {"suggestions": []}  # No recipes found for the user
+
+    recipes = recipes_response.data
+    suggested_recipes = []
+
+    # Step 3: Iterate through each recipe and check if it can be made with the user's food items
+    for recipe in recipes:
+        recipe_id = recipe["id"]
+        ingredients_response = supabase.table("recipe_ingredients").select("*").eq("recipe_id", recipe_id).execute()
+
+        if not ingredients_response.data:
+            continue  # Skip recipes that don't have ingredients
+
+        recipe_ingredients = ingredients_response.data
+        missing_ingredients = []
+        can_make_recipe = True
+
+        # Check if the user has the necessary ingredients
+        for ingredient in recipe_ingredients:
+            ingredient_name = ingredient["name_norm"]
+            if ingredient_name not in user_food_items:
+                missing_ingredients.append(ingredient["name"])
+                can_make_recipe = False
+
+        # If the recipe can be made (all ingredients are available)
+        if can_make_recipe:
+            suggested_recipes.append({
+                "title": recipe["title"],
+                "description": recipe["description"],
+                "ingredients": [ingredient["name"] for ingredient in recipe_ingredients]
+            })
+        elif missing_ingredients:
+            suggested_recipes.append({
+                "title": recipe["title"],
+                "description": recipe["description"],
+                "missing_ingredients": missing_ingredients
+            })
+
+    # Step 4: Return the list of suggested recipes
+    return {"suggestions": suggested_recipes}
+
+
 # ----------- ROUTES -----------
 # 1) Registrierung
 @app.post("/users/", tags=["auth"])
